@@ -10,7 +10,7 @@
 using namespace std;
 
 template <typename T>
-vector<vector<T> > segment(const vector<T>& input)
+vector<vector<T> > segment(const vector<T>& input, float dis_threshold, int batch_size)
 {
 	vector<vector<T> > p_set;
 
@@ -18,9 +18,9 @@ vector<vector<T> > segment(const vector<T>& input)
 
 	std::cout << "input size = " << input.size() << std::endl;
 
-	YAML::Node config = YAML::LoadFile("/home/lei/scan_to_match/src/location_match_score/config/segment_params.yaml");
-	float dis_threshold = config["dis_threshold"].as<float>();
-	int batch_size = config["batch_size"].as<int>();
+	// YAML::Node config = YAML::LoadFile("/home/suirui/scan_match_score/src/location_match_score/config/segment_params.yaml");
+	// float dis_threshold = config["dis_threshold"].as<float>();
+	// int batch_size = config["batch_size"].as<int>();
 
 	// std::cout << "first element: " << input[0] << std::endl;
 	// std::cout << "pre_pp.norm() = " << pre_pp.norm() << std::endl;

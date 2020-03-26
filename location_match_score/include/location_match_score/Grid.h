@@ -23,6 +23,7 @@
 #include "exception.h"
 #include "segment.h"
 // #include "fitLine.h"
+#include <yaml-cpp/yaml.h>
 
 namespace karto
 {
@@ -688,7 +689,10 @@ typedef enum
       , m_Capacity(0)
       , m_Size(0)
       , m_ppLookupArray(NULL)
+      , m_dis_threshold(0.3)
+      , m_batch_size(30)
     {
+      LoadSegParameters();
     }
 
     /**
@@ -737,6 +741,13 @@ typedef enum
       return dis_set;
     }
 
+    void LoadSegParameters()
+    {
+      YAML::Node config = YAML::LoadFile("/home/lei/scan_to_match/src/location_match_score/config/segment_params.yaml");
+	    m_dis_threshold = config["dis_threshold"].as<float>();
+	    m_batch_size = config["batch_size"].as<int>();
+    }
+
     /**
      * Compute lookup table of the points of the given scan for the given angular space
      * @param pScan the scan
@@ -775,7 +786,7 @@ typedef enum
       //过滤数据，将数据通过聚类方法分隔为小块
       seg_counter.clear();
       std::vector<Pose2Vector> segment_set;
-      segment_set = segment(localPoints);
+      segment_set = segment(localPoints, m_dis_threshold, m_batch_size);
 
       Pose2Vector localPoints_filter;
 
@@ -955,6 +966,9 @@ typedef enum
 
     std::vector<double> slope_set;
     std::vector<double> dis_set;
+
+    float m_dis_threshold;
+    int m_batch_size;
   };  // class GridIndexLookup
 
   class CorrelationGrid : public Grid<uint8_t>
