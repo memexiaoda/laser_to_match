@@ -1,0 +1,3 @@
+dis_threshold: 0.3
+batch_size: 50
+
