@@ -39,23 +39,6 @@ namespace karto
     return val;
   }
 
-  void Normal_Response(double & input)
-  {
-    double val;
-    double a;
-    a = input;
-    int b = std::floor(a * 100);
-    if(0 <= (b % 10) && (b % 10)< 5)
-    {
-      val = (b / 10) * 10 + 5;
-    }else if(5 <= (b % 10))
-    {
-      val = ((b / 10) + 1) * 10;
-    }
-    input  = val/100.0;
-
-  }
-
 ScanMatcher::~ScanMatcher()
 {
 //  delete m_pCorrelationGrid;
@@ -338,9 +321,6 @@ ScanMatcher::~ScanMatcher()
     std::cout << "ratio_target = " << ratio_target << std::endl;
 
     bestResponse *= ratio_target;
-    
-    //regular response 
-    // Normal_Response(bestResponse);
 
     if (bestResponse > 1.0)
     {

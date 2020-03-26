@@ -22,7 +22,6 @@
 #include "laser_scan.h"
 #include "exception.h"
 #include "segment.h"
-// #include "fitLine.h"
 
 namespace karto
 {
@@ -727,16 +726,6 @@ typedef enum
       return seg_counter;
     }
 
-    const std::vector<double>& GetSlope_set() const
-    {
-      return slope_set;
-    }
-
-    const std::vector<double>& GetDisSet() const
-    {
-      return dis_set;
-    }
-
     /**
      * Compute lookup table of the points of the given scan for the given angular space
      * @param pScan the scan
@@ -783,7 +772,7 @@ typedef enum
       for(int i = 0; i < segment_set.size(); ++i)
       {
         unsigned int ss = segment_set[i].size();
-        // std::cout << "segment_set[i].size() " << ss << std::endl;
+        std::cout << "segment_set[i].size() " << ss << std::endl;
 
         for(int j = 0; j < ss; ++j)
         {
@@ -791,53 +780,9 @@ typedef enum
         }
         
         seg_counter.push_back(ss);
-
-        std::cout << "seg " << i << "size = " << ss << std::endl;
       }
 
       std::cout << "localPoints_filter size() = " << localPoints_filter.size() << std::endl;
-
-      const Vector2<double>& rGridOffset = m_pGrid->GetCoordinateConverter()->GetOffset();
-       double cosine = cos(angleCenter);
-      double sine = sin(angleCenter);
-
-      slope_set.clear();
-
-      dis_set.clear();
-
-      //记录激光点距离激光雷达的距离，作为得分权重的参考
-      std::vector<double> tmp_dis_set;
-
-      for(int i = 0; i < segment_set.size(); ++i)
-      {
-        vector<Vector2<int>> grid_set;
-        for(int j = 0; j < segment_set[i].size(); ++j)
-        {
-          const Vector2<double>& rPosition = segment_set[i][j].GetPosition();
-          
-          tmp_dis_set.push_back(rPosition.SquaredLength());
-
-          // counterclockwise rotation and that rotation is about the origin (0, 0).
-          Vector2<double> offset;
-          offset.SetX(cosine * rPosition.GetX() - sine * rPosition.GetY());
-          offset.SetY(-(sine * rPosition.GetX() + cosine * rPosition.GetY()));//转换到像素坐标系下，绕X轴旋转180度
-
-          // have to compensate for the grid offset when getting the grid index
-          Vector2<int> gridPoint = m_pGrid->WorldToGrid(offset + rGridOffset);
-
-          grid_set.push_back(gridPoint);
-        }
-
-        std::sort(tmp_dis_set.begin(), tmp_dis_set.end());
-        int dis_ind =  tmp_dis_set.size() / 2;
-        double mid_dis = tmp_dis_set[dis_ind];
-
-        dis_set.push_back(mid_dis);
-
-        // double slope = cv_ws::cv_getLinePara(grid_set);
-        // slope_set.push_back(slope);
-        // std::cout << "slope " << i << ":" << slope << std::endl; 
-      }
 
       //////////////////////////////////////////////////////
       // create lookup array for different angles
@@ -952,10 +897,9 @@ typedef enum
     std::vector<double> m_Angles;
 
     std::vector<unsigned int> seg_counter;
-
-    std::vector<double> slope_set;
-    std::vector<double> dis_set;
   };  // class GridIndexLookup
+
+
 
   class CorrelationGrid : public Grid<uint8_t>
   {

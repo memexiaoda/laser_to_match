@@ -242,7 +242,7 @@ LocationMatchScore::LocationMatchScore() :
   }else{
     requestMap();
   }
-  cir_buf.resize(5);
+  cir_buf.resize(20);
 
 }
 
@@ -366,6 +366,7 @@ LocationMatchScore::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
          tmp_sum += cir_buf[i];
       }
       double avr_res = tmp_sum / cir_buf.size();
+      karto::Normal_Response(avr_res);
       std_msgs::Float32 res;
       res.data = avr_res;
       response_pub_.publish(res);

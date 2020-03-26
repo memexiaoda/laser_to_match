@@ -8,7 +8,6 @@
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
-#include <numeric>
 
 #include <math.h>
 #include <float.h>
@@ -21,49 +20,14 @@
 
 namespace karto
 {
-  float WeightDistribute(const float& x)
-  {
-    float val;
-    if(x>0 && x<3)
-    {
-      val = 1.0;
-    }else if(x >=3 && x < 8){
-      val = 0.9;
-    }else if(x>=8 && x < 20){
-      val = 0.7;
-    }else if(x>=20 && x < 50){
-      val = 0.5;
-    }else{
-      val = 0.3;
-    }
-    return val;
-  }
-
-  void Normal_Response(double & input)
-  {
-    double val;
-    double a;
-    a = input;
-    int b = std::floor(a * 100);
-    if(0 <= (b % 10) && (b % 10)< 5)
-    {
-      val = (b / 10) * 10 + 5;
-    }else if(5 <= (b % 10))
-    {
-      val = ((b / 10) + 1) * 10;
-    }
-    input  = val/100.0;
-
-  }
-
 ScanMatcher::~ScanMatcher()
-{
-//  delete m_pCorrelationGrid;
-  // m_pCorrelationGrid = NULL;
-  delete m_pSearchSpaceProbs;
-  delete m_pGridLookup;
+  {
+  //  delete m_pCorrelationGrid;
+    // m_pCorrelationGrid = NULL;
+    delete m_pSearchSpaceProbs;
+    delete m_pGridLookup;
 
-}
+  }
 
   ScanMatcher* ScanMatcher::Create(Mapper* pMapper, double searchSize, double resolution,
                                    double smearDeviation, double rangeThreshold, 
@@ -327,7 +291,7 @@ ScanMatcher::~ScanMatcher()
     double l2_norm = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
     std::cout << "l2_norm = " << l2_norm << std::endl;
 
-    double sigma = 0.25;
+    double sigma = 0.2;
     //正态分布概率密度函数，N(0,sigma)
     double ratio = 1/(sqrt(2 * 3.14) * sigma) * exp(-std::pow(l2_norm, 2)  / (2 * sigma * sigma));
     double ratio_max =  1/(sqrt(2 * 3.14) * sigma);
@@ -338,9 +302,6 @@ ScanMatcher::~ScanMatcher()
     std::cout << "ratio_target = " << ratio_target << std::endl;
 
     bestResponse *= ratio_target;
-    
-    //regular response 
-    // Normal_Response(bestResponse);
 
     if (bestResponse > 1.0)
     {
@@ -382,13 +343,10 @@ ScanMatcher::~ScanMatcher()
     // calculate response
     std::vector<double> response_set;  
     std::map<int, double> response_map;
-    std::map<int, double> dis_map;
-
     const std::vector<unsigned int>& seg_counter = m_pGridLookup->GetSegCounter();
 
-    const std::vector<double>& dis_set_ref = m_pGridLookup->GetDisSet();
-
     // const std::vector<double>& slope_tmp = m_pGridLookup->GetSlope_set();
+
     unsigned int seed = 0;
     for(int i = 0; i < seg_counter.size(); ++i)
     {
@@ -403,6 +361,7 @@ ScanMatcher::~ScanMatcher()
           seed++;
           continue;
         }
+
         // uses index offsets to efficiently find location of point in the grid
         tmp_response += pByte[index_offset];
         seed++;
@@ -410,57 +369,71 @@ ScanMatcher::~ScanMatcher()
       tmp_response /= (seg_counter[i] * GridStates_Occupied);
       response_set.push_back(tmp_response);
       response_map.insert(std::pair<int, double>(seg_counter[i], tmp_response));
-      dis_map.insert(std::pair<int, double>(seg_counter[i], dis_set_ref[i]));
     }
 
+    // std::sort(response_set.begin(), response_set.end(), greater<double>());
+
+    // uint8_t cal_size;
+    // if(0 < response_set.size() < 5)
+    // {
+    //   cal_size = response_set.size();
+    // }
+    // else if(response_set.size() >= 5)
+    // {
+    //   cal_size = response_set.size() / 2;
+    // }
+    // else
+    // {
+    //   cal_size = 0;
+    // }
+    
+    // double rr = 0;
+
+    // if(cal_size > 0)
+    // {
+    //   for(int i = 0; i < cal_size; ++i)
+    //   {
+    //     rr += response_set[i];
+    //   }
+    //   response = rr / cal_size;
+    // }
+    
     //区块点数多的权重大，区块点数少的权重小
     std::map<int, double>::iterator it = response_map.begin();
-    double num_sum =  0;
-    bool use_dis_weight = true;
-
-    std::vector<double> score_set;
-    std::vector<double> weight_set;
-    std::vector<int> num_set;
-
+    int num_sum =  0;
     for(; it != response_map.end(); ++it)
     {
-      num_set.push_back(it->first);
-      score_set.push_back(it->second);
+      num_sum += it->first; 
     }
 
-    if(use_dis_weight)
-    {
-      std::map<int, double>::iterator it_dis = dis_map.begin();
-      for(; it_dis != dis_map.end(); ++it_dis)
-      {
-        float w = WeightDistribute(it_dis->second);
-        weight_set.push_back(w);
-      }
-
-      assert(num_set.size() == weight_set.size());
-      for(int i = 0; i < num_set.size(); ++i)
-      {
-        num_set[i] = num_set[i] * weight_set[i];
-      }
-
-      num_sum = std::accumulate(num_set.begin(), num_set.end(), num_sum);
-      
-    }else
-    {
-      num_sum = std::accumulate(num_set.begin(), num_set.end(), num_sum);
-    }
-
-    for(int i = 0; i < num_set.size(); ++i)
-    {
-      response += score_set[i] * num_set[i] / num_sum;
-    }
-    
     it = response_map.begin();
+
     for(; it != response_map.end(); ++it)
     {
-      // response += it->second * it->first / num_sum; 
+      response += it->second * it->first / num_sum; 
       std::cout << "seg size: " << it->first << '\t' << "response: " << it->second << std::endl;
     }
+
+    std::cout<< "The score is = " << response << std::endl;
+    
+    // cal_size = response_map.size();
+    
+    // //判断得分最大的前几个之中是否有直线斜率接近相等的（过滤出来的直线有平行的），减小平行直线的权重，重点判断相交线段的得分
+    // //相交直线存在情况下，平行直线的权重高，没有相交直线时，平行直线的权重低
+    // std::vector<double> score_set;
+    // for(int i = 0; i < cal_size; ++i, ++it)
+    // {
+    //   double tmp_previous;
+
+    //   if(fabs(it->second - tmp_previous) < 0.3)
+    //   {
+    //     //mark当前直线，作为对比
+
+    //   }else
+    //   {        
+    //   }
+    //   //判断相交
+    // }
 
     assert(fabs(response) <= 1.0);
     return response;

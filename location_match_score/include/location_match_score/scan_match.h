@@ -31,6 +31,8 @@ namespace karto
   #define DISTANCE_PENALTY_GAIN   0.2
   #define ANGLE_PENALTY_GAIN      0.2
 
+  void Normal_Response(double & input);
+
 /**
    * Scan matcher
    */
