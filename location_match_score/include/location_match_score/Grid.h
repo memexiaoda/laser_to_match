@@ -790,11 +790,15 @@ typedef enum
 
       Pose2Vector localPoints_filter;
 
-      // std::cout << "segment_set.size() " << segment_set.size() << std::endl;
+      //这里增加一个判断是避免分割函数没有数据时，会使得程序异常终止
+      if(segment_set.size() == 0)
+      {
+        segment_set.push_back(localPoints);
+      }
+
       for(int i = 0; i < segment_set.size(); ++i)
       {
         unsigned int ss = segment_set[i].size();
-        // std::cout << "segment_set[i].size() " << ss << std::endl;
 
         for(int j = 0; j < ss; ++j)
         {
