@@ -20,7 +20,7 @@
 #include "tf2/LinearMath/Transform.h"
 #include "tf2/convert.h"
 // #include "tf2/utils.h"
-//#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+// #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/message_filter.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -42,9 +42,6 @@
 #include <eigen3/Eigen/Dense>
 #include "location_match_score/segment.h"
 
-// compute linear index for given map coords
-// #define MAP_IDX(sx, i, j) ((sx) * (j) + (i))
-
 typedef enum
 {
   GridStates_Unknown = 0,
@@ -55,7 +52,6 @@ typedef enum
 void sigintHandler(int sig)
 {
   // Save latest pose as we're shutting down.
-  // amcl_node_ptr->savePoseToServer();
   ros::shutdown();
 }
 
@@ -128,10 +124,14 @@ class LocationMatchScore
     bool use_map_topic_;
     tf::Transform map_to_odom_;
 
+    double seg_dis_threshold_;
+    int seg_batch_size_;
+
     boost::recursive_mutex configuration_mutex_;
 
     double response;
     boost::circular_buffer<double> cir_buf;
+    string yaml_load_path;
 };
 
 boost::scoped_ptr<LocationMatchScore> LocationMatchScore_node_ptr;
@@ -183,9 +183,6 @@ LocationMatchScore::LocationMatchScore() :
   private_nh_.param("correlation_search_space_smear_deviation", correlation_search_space_smear_deviation_, 0.04);
   mapper_->setParamCorrelationSearchSpaceSmearDeviation(correlation_search_space_smear_deviation_);
 
-  // Setting Correlation Parameters, Loop Closure Parameters from the Parameter Server
-
-  // Setting Scan Matcher Parameters from the Parameter Server
 
   double distance_variance_penalty_;
   private_nh_.param("distance_variance_penalty", distance_variance_penalty_, 0.3);
@@ -220,11 +217,14 @@ LocationMatchScore::LocationMatchScore() :
   mapper_->setParamUseResponseExpansion(use_response_expansion);
 
   private_nh_.param("rangeThreshold", rangeThreshold_, 15.0);
-
   private_nh_.param("use_map_topic", use_map_topic_, true);
+  private_nh_.param("seg_batch_size", seg_batch_size_, 50);
+  private_nh_.param("seg_dis_threshold", seg_dis_threshold_, 0.3);
+
+  int cir_buf_size_;
+  private_nh_.param("cir_buf_size", cir_buf_size_, 5);
 
   response_pub_ = nh_.advertise<std_msgs::Float32>("match_response",1,true);
-
 
   laser_scan_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>(nh_, "scan", 5);
 
@@ -238,12 +238,15 @@ LocationMatchScore::LocationMatchScore() :
   if(use_map_topic_)
   {
     map_sub_ = nh_.subscribe("map", 1, &LocationMatchScore::mapReceived, this);
-    ROS_INFO("Subscribed to map topic.");
+    // ROS_INFO("Subscribed to map topic.");
   }else{
     requestMap();
   }
-  cir_buf.resize(20);
+  cir_buf.resize(cir_buf_size_);
 
+  karto::GridIndexLookup<uint8_t>::LoadSegParameters(seg_batch_size_,  seg_dis_threshold_);
+  // ROS_INFO("seg_batch_size: %d", seg_batch_size_);
+  // ROS_INFO("seg_dis_threshold_: %f", seg_dis_threshold_);
 }
 
 LocationMatchScore::~LocationMatchScore()
@@ -262,9 +265,6 @@ LocationMatchScore::~LocationMatchScore()
     delete mapper_;
   if(m_pCorrelationGrid_)
     delete m_pCorrelationGrid_;
-
-  // if(lasers_[laser_scan_frame_id])
-  //   delete lasers_[laser_scan_frame_id];
 
   delete tf_;
   // TODO: delete the pointers in the lasers_ map; not sure whether or not
@@ -292,7 +292,6 @@ LocationMatchScore::getLaser(const sensor_msgs::LaserScan::ConstPtr& scan)
   }
 
   return lasers_[scan->header.frame_id];
-  
 }
 
 
@@ -311,7 +310,7 @@ LocationMatchScore::getLaserPose(karto::Pose2& karto_pose, const ros::Time& t, s
   }
   catch(tf2::TransformException e)
   {
-    ROS_WARN("Failed to compute odom pose, skipping scan (%s)", e.what());
+   // ROS_WARN("Failed to compute odom pose, skipping scan (%s)", e.what());
     return false;
   }
   double yaw = tf::getYaw(laser_pose.getRotation());
@@ -319,11 +318,6 @@ LocationMatchScore::getLaserPose(karto::Pose2& karto_pose, const ros::Time& t, s
   karto_pose = karto::Pose2(laser_pose.getOrigin().x(),
                            laser_pose.getOrigin().y(),
                            yaw);
-  // ROS_INFO("laser pose: x = %f, y = %f, yaw = %f ", 
-  //          laser_pose.getOrigin().x(),
-  //          laser_pose.getOrigin().y(),
-  //          yaw);
-
   return true;
 }
 
@@ -333,27 +327,14 @@ LocationMatchScore::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 {
   if(!first_map_received_)
     return;
-
   boost::recursive_mutex::scoped_lock lc(configuration_mutex_);
-
   laser_scan_frame_id = scan->header.frame_id;
-  //ROS_INFO("laser_scan_frame_id, %s", laser_scan_frame_id.c_str());
-  // Check whether we know about this laser yet
-  // std::shared_ptr<karto::LaserRangeFinder> laser = getLaser(scan);
-
-  // if(!laser)
-  // {
-  //   ROS_WARN("Failed to create laser device for %s; discarding scan",
-  //      scan->header.frame_id.c_str());
-  //   return;
-  // }
 
   if(scanmatcher_)
   {
     laser_count_++;
     if ((laser_count_ % throttle_scans_) != 0)
     return;
-
     // static ros::Time last_map_update(0,0);
 
     karto::Pose2 laser_pose;
@@ -370,7 +351,7 @@ LocationMatchScore::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
       std_msgs::Float32 res;
       res.data = avr_res;
       response_pub_.publish(res);
-      ROS_DEBUG("added scan at pose: %.3f %.3f %.3f", laser_pose.GetX(),laser_pose.GetY(),laser_pose.GetHeading());
+    //  ROS_DEBUG("added scan at pose: %.3f %.3f %.3f", laser_pose.GetX(),laser_pose.GetY(),laser_pose.GetHeading());
     }
   }
   
@@ -405,16 +386,10 @@ LocationMatchScore::addScan(const sensor_msgs::LaserScan::ConstPtr& scan,
     }else{
       continue;
     }
-    
   }
 
-  std::cout << "reading_set size = " << reading_set.size() << std::endl;
-  // ROS_INFO("number of laser points = %d", count);
-  // ROS_INFO("laser readings copied is done!");
-
-  // std::vector<std::vector<Eigen::Vector2f> > seg_set;
-  // seg_set = segment(reading_set);
-   ros::Time begin = ros::Time::now();
+  // std::cout << "reading_set size = " << reading_set.size() << std::endl;
+  ros::Time begin = ros::Time::now();
 
   karto::LocalizedRangeScan range_scan;
   range_scan.SetRangeReadings(reading_set);
@@ -424,14 +399,10 @@ LocationMatchScore::addScan(const sensor_msgs::LaserScan::ConstPtr& scan,
   karto::Pose2 rMean;
   karto::Matrix3 rCovariance;
   response = scanmatcher_->MatchScan(range_scan, rMean, rCovariance, false, false);
-
-  ROS_INFO("score %f", response);
-
+  // ROS_INFO("score %f", response);
   ros::Time end = ros::Time::now();
   ros::Duration calcu_time = end - begin;
-
-  ROS_INFO("Calculate time = %f", calcu_time.toSec());
-
+  // ROS_INFO("Calculate time = %f", calcu_time.toSec());
   return true;
 }
 
@@ -441,12 +412,9 @@ LocationMatchScore::mapReceived(const nav_msgs::OccupancyGridConstPtr& msg)
   if( first_map_only_ && first_map_received_ ) {
     return;
   }
-  ROS_INFO("map received");
+  // ROS_INFO("map received");
   handleMapMessage( *msg );
-
-  ROS_INFO("map has been handled!");
-
-
+  // ROS_INFO("map has been handled!");
   first_map_received_ = true;
 }
 
@@ -458,15 +426,14 @@ LocationMatchScore::requestMap()
   // get map via RPC
   nav_msgs::GetMap::Request  req;
   nav_msgs::GetMap::Response resp;
-  ROS_INFO("Requesting the map...");
+  // ROS_INFO("Requesting the map...");
   while(!ros::service::call("static_map", req, resp))
   {
-    ROS_WARN("Request for map failed; trying again...");
+   // ROS_WARN("Request for map failed; trying again...");
     ros::Duration d(0.5);
     d.sleep();
   }
   handleMapMessage( resp.map );
-
   first_map_received_ = true;
 }
 
@@ -474,20 +441,18 @@ void
 LocationMatchScore::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
 {
   boost::recursive_mutex::scoped_lock cfl(configuration_mutex_);
-
   convertMap(msg);
 }
 
 void
 LocationMatchScore::convertMap(const nav_msgs::OccupancyGrid& map_msg)
 {
-  ROS_INFO("Mapper SmearDeviation: %f", mapper_->m_pCorrelationSearchSpaceSmearDeviation->GetValue());
+  // ROS_INFO("Mapper SmearDeviation: %f", mapper_->m_pCorrelationSearchSpaceSmearDeviation->GetValue());
   m_pCorrelationGrid_ = karto::CorrelationGrid::CreateGrid(map_msg.info.width, map_msg.info.height, map_msg.info.resolution, mapper_->m_pCorrelationSearchSpaceSmearDeviation->GetValue());
 
-  ROS_INFO("start parse map message!");
-
-  ROS_INFO("map width = %d", map_msg.info.width);
-  ROS_INFO("map height = %d", map_msg.info.height);
+  // ROS_INFO("start parse map message!");
+  // ROS_INFO("map width = %d", map_msg.info.width);
+  // ROS_INFO("map height = %d", map_msg.info.height);
 
   // Occupancy state (-1 = free, 0 = unknown, +1 = occ) from amcl
   int count_of_occupied = 0;
@@ -512,18 +477,18 @@ LocationMatchScore::convertMap(const nav_msgs::OccupancyGrid& map_msg)
       _index++; 
   }
   }
-  std::cout << "count_of_occupied = " << count_of_occupied << std::endl;
+  // std::cout << "count_of_occupied = " << count_of_occupied << std::endl;
 
   karto::Vector2<double> offset;
   offset.SetX(map_msg.info.origin.position.x);
   offset.SetY(map_msg.info.origin.position.y);
 
-  std::cout << "offset.SetX " <<  offset.GetX();
-  std::cout << "offset.SetY " << offset.GetY();
+  // std::cout << "offset.SetX " <<  offset.GetX();
+  // std::cout << "offset.SetY " << offset.GetY();
 
   m_pCorrelationGrid_->GetCoordinateConverter()->SetOffset(offset);
 
-  std::cout << "m_pCorrelationGrid_ "<< m_pCorrelationGrid_<<std::endl;
+  // std::cout << "m_pCorrelationGrid_ "<< m_pCorrelationGrid_<<std::endl;
 
   if(m_pCorrelationGrid_)
   {
@@ -535,8 +500,7 @@ LocationMatchScore::convertMap(const nav_msgs::OccupancyGrid& map_msg)
                                              rangeThreshold_,
                                              m_pCorrelationGrid_);
   }
-
-  ROS_INFO("Grid is ok to use!!!"); 
+  // ROS_INFO("Grid is ok to use!!!"); 
 }
 
 
@@ -544,17 +508,7 @@ int
 main(int argc, char** argv)
 {
   ros::init(argc, argv, "location_match_score", ros::init_options::NoSigintHandler);
-  // ros::NodeHandle nh;
-
-  // signal(SIGINT, sigintHandler);
-
-  // LocationMatchScore_node_ptr.reset(new LocationMatchScore());
-
   LocationMatchScore lm;
-
   ros::spin();
-
-  // LocationMatchScore_node_ptr.reset();
-
   return 0;
 }

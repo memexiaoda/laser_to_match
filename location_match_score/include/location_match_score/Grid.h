@@ -237,7 +237,7 @@ typedef enum
     {
       delete [] m_pData;
       delete m_pCoordinateConverter;
-      std::cout<< "Deconstruction Grid" <<std::endl;
+      // std::cout<< "Deconstruction Grid" <<std::endl;
     }
 
   public:
@@ -327,10 +327,10 @@ typedef enum
       {
         if (IsValidGridIndex(rGrid) == false)
         {
-          std::cout << "calculate index!"<<std::endl;
+          // std::cout << "calculate index!"<<std::endl;
           std::stringstream error;
-          error << "Index " << rGrid << " out of range.  Index must be between [0; "
-                << m_Width << ") and [0; " << m_Height << ")";
+         // error << "Index " << rGrid << " out of range.  Index must be between [0; "
+          //      << m_Width << ") and [0; " << m_Height << ")";
           throw Exception(error.str());
         }
       }
@@ -689,10 +689,7 @@ typedef enum
       , m_Capacity(0)
       , m_Size(0)
       , m_ppLookupArray(NULL)
-      , m_dis_threshold(0.3)
-      , m_batch_size(30)
     {
-      LoadSegParameters();
     }
 
     /**
@@ -741,11 +738,10 @@ typedef enum
       return dis_set;
     }
 
-    void LoadSegParameters()
+    static void LoadSegParameters(const int batch_size, const double dis_threshold)
     {
-      YAML::Node config = YAML::LoadFile("/home/lei/scan_to_match/src/location_match_score/config/segment_params.yaml");
-	    m_dis_threshold = config["dis_threshold"].as<float>();
-	    m_batch_size = config["batch_size"].as<int>();
+	    m_dis_threshold = dis_threshold;
+	    m_batch_size = batch_size;
     }
 
     /**
@@ -764,7 +760,7 @@ typedef enum
       assert(angleResolution != 0.0);
 
       unsigned int nAngles = static_cast<unsigned int>(math::Round(angleOffset * 2.0 / angleResolution) + 1);
-      std::cout << "nAngles = " << nAngles << std::endl;
+      // std::cout << "nAngles = " << nAngles << std::endl;
       SetSize(nAngles);
 
       // convert points into local coordinates of scan pose
@@ -781,7 +777,7 @@ typedef enum
         Pose2 vec = Pose2(*iter, 0.0);
         localPoints.push_back(vec);
       }
-      std::cout << "localPoints size = " << localPoints.size() << std::endl;
+      // std::cout << "localPoints size = " << localPoints.size() << std::endl;
       
       //过滤数据，将数据通过聚类方法分隔为小块
       seg_counter.clear();
@@ -807,10 +803,10 @@ typedef enum
         
         seg_counter.push_back(ss);
 
-        std::cout << "seg " << i << "size = " << ss << std::endl;
+        // std::cout << "seg " << i << "size = " << ss << std::endl;
       }
 
-      std::cout << "localPoints_filter size() = " << localPoints_filter.size() << std::endl;
+      // std::cout << "localPoints_filter size() = " << localPoints_filter.size() << std::endl;
 
       const Vector2<double>& rGridOffset = m_pGrid->GetCoordinateConverter()->GetOffset();
        double cosine = cos(angleCenter);
@@ -910,7 +906,7 @@ typedef enum
         readingIndex++;
       }
       assert(readingIndex == rLocalPoints.size());
-      std::cout << "readingIndex size = " << readingIndex << std::endl;
+      // std::cout << "readingIndex size = " << readingIndex << std::endl;
     }
 
     /**
@@ -971,9 +967,12 @@ typedef enum
     std::vector<double> slope_set;
     std::vector<double> dis_set;
 
-    float m_dis_threshold;
-    int m_batch_size;
+    static double m_dis_threshold;
+    static int m_batch_size;
   };  // class GridIndexLookup
+
+template <typename T> double GridIndexLookup<T>::m_dis_threshold = 0.3;
+template <typename T> int GridIndexLookup<T>::m_batch_size = 50;
 
   class CorrelationGrid : public Grid<uint8_t>
   {
@@ -1153,10 +1152,10 @@ typedef enum
       if (!math::InRange(m_SmearDeviation, MIN_SMEAR_DISTANCE_DEVIATION, MAX_SMEAR_DISTANCE_DEVIATION))
       {
         std::stringstream error;
-        error << "Mapper Error:  Smear deviation too small:  Must be between "
-              << MIN_SMEAR_DISTANCE_DEVIATION
-              << " and "
-              << MAX_SMEAR_DISTANCE_DEVIATION;
+       // error << "Mapper Error:  Smear deviation too small:  Must be between "
+        //      << MIN_SMEAR_DISTANCE_DEVIATION
+        //      << " and "
+        //      << MAX_SMEAR_DISTANCE_DEVIATION;
         throw std::runtime_error(error.str());
       }
 

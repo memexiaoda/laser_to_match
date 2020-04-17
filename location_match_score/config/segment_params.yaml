@@ -1,3 +1,9 @@
-dis_threshold: 0.3
-batch_size: 30
-
+odom_frame: odom
+seg_batch_size: 40 
+seg_dis_threshold: 0.3
+use_map_topic: true
+throttle_scans: 2
+cir_buf_size: 5
+correlation_search_space_resolution: 0.01
+correlation_search_space_dimension: 0.2
+correlation_search_space_smear_deviation: 0.05

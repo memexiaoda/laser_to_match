@@ -108,7 +108,7 @@ namespace karto
           m_RangeReadings.push_back(*iter);
         }
 
-        std::cout << "copy readings number = "<< m_RangeReadings.size() << std::endl;
+        // std::cout << "copy readings number = "<< m_RangeReadings.size() << std::endl;
       }
       else
       {
@@ -246,7 +246,7 @@ namespace karto
     {
       Pose2 scanPose = GetSensorPose();
       double heading = scanPose.GetHeading();
-      std::cout << "scanPose = " << scanPose << std::endl;
+      // std::cout << "scanPose = " << scanPose << std::endl;
 
       m_PointReadings.clear();
       m_LocalPointReadings.clear();
@@ -275,7 +275,7 @@ namespace karto
          m_PointReadings.push_back(point);
        }
 
-      std::cout<< "m_PointReadings size is: "<<m_PointReadings.size()<<std::endl;
+      // std::cout<< "m_PointReadings size is: "<<m_PointReadings.size()<<std::endl;
 
       m_IsDirty = false;
 

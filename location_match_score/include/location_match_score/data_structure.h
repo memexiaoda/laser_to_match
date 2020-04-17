@@ -575,7 +575,7 @@ namespace karto
       std::stringstream converter;
       converter.precision(std::numeric_limits<double>::digits10);
 
-      converter << GetX() << " " << GetY() << " " << GetZ();
+    //  converter << GetX() << " " << GetY() << " " << GetZ();
 
       return converter.str();
     }

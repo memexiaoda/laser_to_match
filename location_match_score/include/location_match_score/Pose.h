@@ -347,15 +347,15 @@ namespace karto
      * Returns a string representation of this pose
      * @return string representation of this pose
      */
-    inline std::string ToString()
+    /*inline std::string ToString()
     {
       std::stringstream converter;
       converter.precision(std::numeric_limits<double>::digits10);
 
-      converter << GetPosition() << " " << GetOrientation();
+     // converter << GetPosition() << " " << GetOrientation();
 
-      return converter.str();
-    }
+     // return converter.str();
+    }*/
 
   public:
     /**

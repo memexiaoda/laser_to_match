@@ -129,7 +129,7 @@ namespace karto
 
       if (math::DoubleEqual(GetRangeThreshold(), rangeThreshold) == false)
       {
-        std::cout << "Info: clipped range threshold to be within minimum and maximum range!" << std::endl;
+       // std::cout << "Info: clipped range threshold to be within minimum and maximum range!" << std::endl;
       }
     }
 
@@ -217,8 +217,8 @@ namespace karto
 
       if (math::InRange(GetRangeThreshold(), GetMinimumRange(), GetMaximumRange()) == false)
       {
-        std::cout << "Please set range threshold to a value between ["
-                  << GetMinimumRange() << ";" << GetMaximumRange() << "]" << std::endl;
+       // std::cout << "Please set range threshold to a value between ["
+        //          << GetMinimumRange() << ";" << GetMaximumRange() << "]" << std::endl;
         return false;
       }
 

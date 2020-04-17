@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-// #include <boost/thread.hpp>
 
 #include "location_match_score/scan_match.h"
 
@@ -52,8 +51,7 @@ namespace karto
     {
       val = ((b / 10) + 1) * 10;
     }
-    input  = val/100.0;
-
+    input  = val / 100;
   }
 
 ScanMatcher::~ScanMatcher()
@@ -62,7 +60,6 @@ ScanMatcher::~ScanMatcher()
   // m_pCorrelationGrid = NULL;
   delete m_pSearchSpaceProbs;
   delete m_pGridLookup;
-
 }
 
   ScanMatcher* ScanMatcher::Create(Mapper* pMapper, double searchSize, double resolution,
@@ -96,31 +93,17 @@ ScanMatcher::~ScanMatcher()
                                                                      searchSpaceSideSize, resolution);
 
     ScanMatcher* pScanMatcher = new ScanMatcher(pMapper);
-
-    // std::cout<< "ok, it is now to make a grid"<<std::endl;
     pScanMatcher->m_pCorrelationGrid = pCorrelationGrid;
-    std::cout << "pCorrelationGrid " << pCorrelationGrid << std::endl;
-
-    std::cout << "pScanMatcher->m_pCorrelationGrid " << pScanMatcher->m_pCorrelationGrid << std::endl;
-
     uint8_t* pByte = pCorrelationGrid->GetDataPointer();
 
-    std::cout << "pCorrelationGrid grid size = " << sizeof(pByte) << std::endl;
-
     pScanMatcher->m_pSearchSpaceProbs = pSearchSpaceProbs;
-
-    std::cout<<"initialize GridLookup" <<std::endl;
-    // for(int i = 0; i < 60; ++i)
-    //   std::cout<< "pCorrelationGrid data i = "<< pCorrelationGrid->GetDataPointer()[i]<<std::endl;
 
     pScanMatcher->m_pGridLookup = new GridIndexLookup<uint8_t>(pCorrelationGrid);
 
     for(int i = 0; i < pCorrelationGrid->GetDataSize(); ++i)
     {
       pCorrelationGrid->SmearPoint(i);
-
     }
-
     return pScanMatcher;
   }
 
@@ -158,7 +141,7 @@ ScanMatcher::~ScanMatcher()
     }
 
     m_pCorrelationGrid->GetCoordinateConverter()->GetOffset();
-    std::cout << m_pCorrelationGrid->GetCoordinateConverter()->GetOffset();
+    // std::cout << m_pCorrelationGrid->GetCoordinateConverter()->GetOffset();
 
     // compute how far to search in each direction
     Vector2<double> searchDimensions(m_pSearchSpaceProbs->GetWidth(), m_pSearchSpaceProbs->GetHeight());
@@ -214,7 +197,6 @@ ScanMatcher::~ScanMatcher()
     m_pGridLookup->ComputeOffsets(pScan, rSearchCenter.GetHeading(), searchAngleOffset, searchAngleResolution);
 
     // calculate position arrays
-
     std::vector<double> xPoses;
     unsigned int nX = static_cast<unsigned int>(math::Round(rSearchSpaceOffset.GetX() *
                                           2.0 / rSearchSpaceResolution.GetX()) + 1);
@@ -244,24 +226,14 @@ ScanMatcher::~ScanMatcher()
 
     // allocate array
     std::vector<std::pair<double, Pose2>> pPoseResponse;
-
-
     Vector2<int> startGridPoint = m_pCorrelationGrid->WorldToGrid(Vector2<double>(rSearchCenter.GetX()
                                                                         + startX, rSearchCenter.GetY() + startY),true);
-
-    // std::cout<<"startGridPoint_World_X "<< rSearchCenter.GetX() + startX << std::endl;
-    // std::cout<<"startGridPoint_World_Y "<< rSearchCenter.GetY() + startY << std::endl;
-
-    // std::cout<<"startGridPoint_Grid_X "<< startGridPoint.GetX() << std::endl;
-    // std::cout<<"startGridPoint_Grid_Y "<< startGridPoint.GetY() << std::endl;
 
     unsigned int poseResponseCounter = 0;
     forEachAs(std::vector<double>, &yPoses, yIter)
     {
       double y = *yIter;
       double newPositionY = rSearchCenter.GetY() + y;
-
-      // std::cout<<"rSearchCenter_Y "<< rSearchCenter.GetY() << std::endl;
 
       double squareY = math::Square(y);
 
@@ -307,8 +279,6 @@ ScanMatcher::~ScanMatcher()
     int index_max_response = 0;
     for (unsigned int i = 0; i < poseResponseSize; i++)
     {
-      // bestResponse = math::Maximum(bestResponse, pPoseResponse[i].first);
-
       if(bestResponse < pPoseResponse[i].first)
       {
         bestResponse = pPoseResponse[i].first;
@@ -325,35 +295,23 @@ ScanMatcher::~ScanMatcher()
     double delta_y = target_y - rSearchCenter.GetY();
 
     double l2_norm = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
-    std::cout << "l2_norm = " << l2_norm << std::endl;
 
     double sigma = 0.25;
     //正态分布概率密度函数，N(0,sigma)
     double ratio = 1/(sqrt(2 * 3.14) * sigma) * exp(-std::pow(l2_norm, 2)  / (2 * sigma * sigma));
     double ratio_max =  1/(sqrt(2 * 3.14) * sigma);
-
     double ratio_target = ratio / ratio_max;
-
-    std::cout << "bestResponse = " << bestResponse << std::endl;
-    std::cout << "ratio_target = " << ratio_target << std::endl;
-
     bestResponse *= ratio_target;
-    
     //regular response 
     // Normal_Response(bestResponse);
-
     if (bestResponse > 1.0)
     {
       bestResponse = 1.0;
     }
-
     assert(math::InRange(bestResponse, 0.0, 1.0));
     // assert(math::InRange(rMean.GetHeading(), -PI, PI));
-
     return bestResponse;
   }
-
-  
 
   /**
    * Get response at given position for given rotation (only look up valid points)
@@ -453,13 +411,6 @@ ScanMatcher::~ScanMatcher()
     for(int i = 0; i < num_set.size(); ++i)
     {
       response += score_set[i] * num_set[i] / num_sum;
-    }
-    
-    it = response_map.begin();
-    for(; it != response_map.end(); ++it)
-    {
-      // response += it->second * it->first / num_sum; 
-      std::cout << "seg size: " << it->first << '\t' << "response: " << it->second << std::endl;
     }
 
     assert(fabs(response) <= 1.0);

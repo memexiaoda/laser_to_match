@@ -1,15 +1,16 @@
+<!--
+Provides a reasonable set of parameters for running Karto on a robot
+Assumes an 'odom_combined' frame, that provides reasonably accurate odometry
+-->
 
 <launch>
   <node pkg="location_match_score" type="location_match_score" name="location_match_score" output="screen">
-    <!-- <remap from="scan" to="scan"/> -->
-    <param name="odom_frame" value="odom"/>
-     <param name="throttle_scans" value="1"/>
+    <rosparam file="$(find location_match_score)/config/segment_params.yaml" command="load" />
+    <!-- <param name="odom_frame" value="odom"/>
     <param name="use_map_topic" value="true"/>
+    <param name="throttle_scans" value="5"/>
     <param name="correlation_search_space_resolution" value="0.01"/>
-    <param name="correlation_search_space_dimension" value="0.2"/>
-    <param name="correlation_search_space_smear_deviation" value="0.05"/>
+    <param name="correlation_search_space_dimension" value="0.06"/>
+    <param name="correlation_search_space_smear_deviation" value="0.04"/> -->
   </node>
 </launch>
-
-
-
