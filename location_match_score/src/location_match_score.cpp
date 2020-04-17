@@ -49,11 +49,11 @@ typedef enum
   GridStates_Free = 0
 } GridStates;
 
-void sigintHandler(int sig)
+/*void sigintHandler(int sig)
 {
   // Save latest pose as we're shutting down.
   ros::shutdown();
-}
+}*/
 
 class LocationMatchScore
 {
@@ -62,7 +62,7 @@ class LocationMatchScore
     ~LocationMatchScore();
 
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
-    void requestMap();
+  //  void requestMap();
 
   private:
     bool getLaserPose(karto::Pose2& karto_pose, const ros::Time& t, std::string frame_id);
@@ -240,7 +240,7 @@ LocationMatchScore::LocationMatchScore() :
     map_sub_ = nh_.subscribe("map", 1, &LocationMatchScore::mapReceived, this);
     // ROS_INFO("Subscribed to map topic.");
   }else{
-    requestMap();
+  //  requestMap();
   }
   cir_buf.resize(cir_buf_size_);
 
@@ -418,7 +418,7 @@ LocationMatchScore::mapReceived(const nav_msgs::OccupancyGridConstPtr& msg)
   first_map_received_ = true;
 }
 
-void
+/*void
 LocationMatchScore::requestMap()
 {
   boost::recursive_mutex::scoped_lock ml(configuration_mutex_);
@@ -435,7 +435,7 @@ LocationMatchScore::requestMap()
   }
   handleMapMessage( resp.map );
   first_map_received_ = true;
-}
+}*/
 
 void
 LocationMatchScore::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
@@ -507,7 +507,7 @@ LocationMatchScore::convertMap(const nav_msgs::OccupancyGrid& map_msg)
 int
 main(int argc, char** argv)
 {
-  ros::init(argc, argv, "location_match_score", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "location_match_score");
   LocationMatchScore lm;
   ros::spin();
   return 0;

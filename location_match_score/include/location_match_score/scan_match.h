@@ -36,7 +36,7 @@ namespace karto
 /**
    * Scan matcher
    */
-  class KARTO_EXPORT ScanMatcher
+  class ScanMatcher
   {
   public:
     /**

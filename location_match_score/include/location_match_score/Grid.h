@@ -236,7 +236,11 @@ typedef enum
     virtual ~Grid()
     {
       delete [] m_pData;
+      m_pData = NULL;
+
       delete m_pCoordinateConverter;
+      m_pCoordinateConverter = NULL;
+
       // std::cout<< "Deconstruction Grid" <<std::endl;
     }
 
@@ -566,7 +570,7 @@ typedef enum
     {
       assert(m_pArray != NULL);
 
-      delete[] m_pArray;
+      delete [] m_pArray;
       m_pArray = NULL;
     }
 
@@ -944,10 +948,11 @@ typedef enum
     {
       for (unsigned int i = 0; i < m_Capacity; i++)
       {
-        delete m_ppLookupArray[i];
+        delete [] m_ppLookupArray[i];
+        m_ppLookupArray[i] = NULL;
       }
 
-      delete[] m_ppLookupArray;
+      delete [] m_ppLookupArray;
       m_ppLookupArray = NULL;
     }
 
@@ -984,6 +989,8 @@ template <typename T> int GridIndexLookup<T>::m_batch_size = 50;
     {
        if(m_pKernel)
          delete [] m_pKernel;
+
+       m_pKernel = NULL;
       //  std::cout<<"Deconstruction CorrelationGrid"<<std::endl;
     }
 

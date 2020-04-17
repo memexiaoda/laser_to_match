@@ -4,7 +4,7 @@ Assumes an 'odom_combined' frame, that provides reasonably accurate odometry
 -->
 
 <launch>
-  <node pkg="location_match_score" type="location_match_score" name="location_match_score" output="screen">
+  <node pkg="location_match_score" type="location_match_score" name="location_match_score">
     <rosparam file="$(find location_match_score)/config/segment_params.yaml" command="load" />
     <!-- <param name="odom_frame" value="odom"/>
     <param name="use_map_topic" value="true"/>

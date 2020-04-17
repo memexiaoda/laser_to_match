@@ -40,7 +40,7 @@ namespace karto
    * providing "solid" coverage between consecutive range readings.  The diagram below illustrates
    * the relationship between map resolution and the range threshold.
    */
-  class KARTO_EXPORT LaserRangeFinder
+  class LaserRangeFinder
   {
 
   public:
